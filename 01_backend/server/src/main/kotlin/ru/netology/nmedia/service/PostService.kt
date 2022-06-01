@@ -2,6 +2,7 @@ package ru.netology.nmedia.service
 
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.entity.PostEntity
@@ -10,6 +11,7 @@ import ru.netology.nmedia.repository.PostRepository
 import java.time.OffsetDateTime
 
 @Service
+@Transactional
 class PostService(private val repository: PostRepository) {
     fun getAll(): List<Post> = repository
             .findAll(Sort.by(Sort.Direction.DESC, "id"))
@@ -25,9 +27,9 @@ class PostService(private val repository: PostRepository) {
         .orElse(
             PostEntity.fromDto(
                 dto.copy(
-                    likes = 0,
+                    likedCount = 0,
                     likedByMe = false,
-                    published = OffsetDateTime.now().toEpochSecond()
+                    published = OffsetDateTime.now().toEpochSecond().toString()
                 )
             )
         )
@@ -40,4 +42,22 @@ class PostService(private val repository: PostRepository) {
         repository.findByIdOrNull(id)
             ?.also(repository::delete)
     }
+
+    fun likeById(id: Long): Post = repository
+        .findById(id)
+        .orElseThrow(::NotFoundException)
+        .apply {
+            likedCount += 1
+            likedByMe = true
+        }
+        .toDto()
+
+    fun unlikeById(id: Long): Post = repository
+        .findById(id)
+        .orElseThrow(::NotFoundException)
+        .apply {
+            likedCount -= 1
+            likedByMe = false
+        }
+        .toDto()
 }
